@@ -450,7 +450,7 @@ def urlserver_server_reply_list(conn, sort='-time', search='', page=1, amount=0)
         #FIXME: Make urlserver.py serve the js files instead of relying on remote sources to prevent possible exploits 
         oembed_js = '''<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
         <script src="https://raw.github.com/starfishmod/jquery-oembed-all/master/jquery.oembed.js" type="text/javascript"></script>
-        <link rel="stylesheet" type="text/css" href="https://github.com/starfishmod/jquery-oembed-all/blob/master/jquery.oembed.css" />
+        <link rel="stylesheet" type="text/css" href="https://raw.github.com/starfishmod/jquery-oembed-all/master/jquery.oembed.css" />
         <script type="text/javascript">
         $(document).ready(function () {
             $(".oembed").oembed(null,{
