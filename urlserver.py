@@ -95,7 +95,7 @@ except ImportError:
     import_ok = False
 
 try:
-    import sys, os, string, time, datetime, socket, re, base64, cgi, sqlite3, urlparse, urllib
+    import sys, os, string, time, datetime, socket, re, base64, cgi, sqlite3, urlparse, urllib, htmlentitydefs
 except ImportError as message:
     print('Missing package(s) for %s: %s' % (SCRIPT_NAME, message))
     import_ok = False
@@ -253,6 +253,44 @@ def base62_decode(str_value):
     """Decode a base62 string (all digits + a-z + A-Z) to a number."""
     base62chars = string.digits + string.ascii_letters
     return sum([base62chars.index(char) * (62 ** (len(str_value) - index - 1)) for index, char in enumerate(str_value)])
+
+##
+# Removes HTML or XML character references and entities from a text string. Taken from http://effbot.org/zone/re-sub.htm#unescape-html
+#
+# @param text The HTML (or XML) source text.
+# @return The plain text, as a Unicode string, if necessary.
+def unescape(text):
+    def fixup(m):
+        text = m.group(0)
+        if text[:2] == "&#":
+            # character reference
+            try:
+                if text[:3] == "&#x":
+                    return unichr(int(text[3:-1], 16))
+                else:
+                    return unichr(int(text[2:-1]))
+            except ValueError:
+                pass
+        else:
+            # named entity
+            try:
+                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+            except KeyError:
+                pass
+        return text # leave as is
+    return re.sub("&#?\w+;", fixup, text)
+
+def urlserver_get_page_title_for_url(url):
+    page_title = ''
+    page_title_pattern = re.compile("<title>(.+)<\/title>")
+    html = urllib.urlopen(url).read()
+    html = re.sub("\n",'',urllib.urlopen(url).read())
+    matchdata = page_title_pattern.search(html)
+    if matchdata:
+        page_title = matchdata.group(1).strip().decode('utf-8')
+        page_title = unescape(page_title).encode('utf-8')
+
+    return page_title
 
 def urlserver_short_url(number):
     """Return short URL with number."""
@@ -800,13 +838,9 @@ def urlserver_print_cb(data, buffer, time, tags, displayed, highlight, prefix, m
     # shorten URL(s) in message
     for url in urlserver['regex'].findall(message):
         if len(url) >= min_length:
-            page_title_pattern = re.compile("<title>(.+)<\/title>")
-            page = urllib.urlopen(url).read()
-            matchdata = page_title_pattern.search(page)
-            page_title = ''
-            if matchdata:
-                page_title = matchdata.group(1)
-            message = re.sub(url, '%s (%s)' % (url,page_title), message)
+            page_title = urlserver_get_page_title_for_url(url)
+            if len(page_title) > 0:
+                message = message.replace(url, '%s (%s)' % (url,page_title))
 
             number = urlserver['urls'].insert(time, nick, buffer_name, url, message, prefix)
             if urlserver_settings['display_urls'] == 'on':
