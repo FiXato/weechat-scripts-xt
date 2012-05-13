@@ -500,7 +500,24 @@ def urlserver_server_reply_list(conn, sort='-time', search='', page=1, amount=0)
                 maxHeight: %s, maxWidth: %s
             });
         });
-        </script>''' % urlserver_oembed_size()
+        </script>
+        <style type="text/css">
+        div.oembedall-githubrepos  {
+            background: url("http://fixato.org/media/images/icons/GitHub-Icon-Repo-Public.png") no-repeat scroll 6px 6px transparent;
+        }
+        div.oembedall-githubrepos ul.oembedall-repo-stats li.oembedall-forks a {
+            background: url("http://fixato.org/media/images/icons/GitHub-Icon-Fork.png") no-repeat scroll 6px 0px transparent;
+            width: 40px;
+            height: 32px;
+            display: inline-block;
+        }
+        div.oembedall-githubrepos ul.oembedall-repo-stats li.oembedall-watchers a {
+            background: url("http://fixato.org/media/images/icons/GitHub-Icon-Watch.png") no-repeat scroll 6px 0px transparent;
+            width: 40px;
+            height: 32px;
+            display: inline-block;
+        }
+        </style>''' % urlserver_oembed_size()
     else:
         oembed_js =''
 
