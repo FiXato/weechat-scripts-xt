@@ -213,6 +213,8 @@ urlserver_settings_default = {
     'http_embed_image'   : ('on', 'embed images in HTML page (BE CAREFUL: the HTTP referer will be sent to site hosting image!)'),
     'http_embed_youtube' : ('on', 'embed youtube videos in HTML page (BE CAREFUL: the HTTP referer will be sent to youtube!)'),
     'http_embed_youtube_size': ('480*350', 'size for embedded youtube video, format is "xxx*yyy"'),
+    'http_oembed'        : ('on', 'attempt to embed using the oEmbed javascript library (BE CAREFUL: the HTTP referer will be sent to the oembed provider!)'),
+    'http_oembed_size'   : ('480*350', 'size for content embedded using the oembed library, format is "xxx*yyy"'),
     'http_prefix_suffix' : (' ', 'suffix displayed between prefix and message in HTML page'),
     'http_title'         : ('WeeChat URLs', 'title of the HTML page'),
     # message filter settings
@@ -331,11 +333,23 @@ def urlserver_video_size():
         height = 350
     return width, height
 
+def urlserver_oembed_size():
+    try:
+        size = urlserver_settings['http_oembed_size'].split('*')
+        width = int(size[0])
+        height = int(size[1])
+    except:
+        width = 480
+        height = 350
+    return width, height
+
 def urlserver_youtube_div(yid):
     width, height = urlserver_video_size()
     return '<div class="obj youtube"><iframe id="%s" type="text/html" width="%d" height="%d" ' \
         'src="http://www.youtube.com/embed/%s?enablejsapi=1"></iframe></div>' % (yid, width, height, yid)
 
+def urlserver_oembed_div(url):
+    return '<div class="obj"><a href="%s" class="oembed"></a></div>' % url
 
 def urlserver_server_reply_list(conn, sort='-time', search='', page=1, amount=0):
     """Send list of URLs as HTML page to client."""
@@ -417,6 +431,8 @@ def urlserver_server_reply_list(conn, sort='-time', search='', page=1, amount=0)
                     ''' %{'vid': vid, 'width': width, 'height': height}
         elif len(url) > 8 and ('spotify:' in url[0:8] or '//open.spotify.com/' in url):
             obj = '<div class="obj spotify"><iframe src="https://embed.spotify.com/?uri=%(url)s" width="%(width)s" height="%(height)s" frameborder="0" allowtransparency="true"></iframe></div>' % { 'url': url, 'width': 376, 'height': 80 }
+        elif urlserver_settings['http_oembed'] == 'on':
+            obj = urlserver_oembed_div(url)
 
         content.append('<li class="url">')
         content.append('<h1>%s <span>%s</span>   <span class="small">%s</span></h1>%s %s' %(nick, buffer_name, time, message, obj))
@@ -428,16 +444,40 @@ def urlserver_server_reply_list(conn, sort='-time', search='', page=1, amount=0)
         }
     content.append('<li><a id="nextpage" href="?%s" rel="next" accesskey="n">Next page</a></li>' %urllib.urlencode(attrs))
     content  = '\n'.join(content) + '\n</ul>'
+
+    if len(urlserver_settings['http_oembed']) > 0:
+        #FIXME: Probably remove the apikeys that I copied from https://github.com/starfishmod/jquery-oembed-all/blob/master/examples/test.html
+        #FIXME: Make urlserver.py serve the js files instead of relying on remote sources to prevent possible exploits 
+        oembed_js = '''<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+        <script src="https://raw.github.com/starfishmod/jquery-oembed-all/master/jquery.oembed.js" type="text/javascript"></script>
+        <link rel="stylesheet" type="text/css" href="https://github.com/starfishmod/jquery-oembed-all/blob/master/jquery.oembed.css" />
+        <script type="text/javascript">
+        $(document).ready(function () {
+            $(".oembed").oembed(null,{
+                apikeys: {
+                    //etsy : 'd0jq4lmfi5bjbrxq2etulmjr',
+                    amazon : 'caterwall-20',
+                    //eventbrite: 'SKOFRBQRGNQW5VAS6P',
+                },
+                maxHeight: %s, maxWidth: %s
+            });
+        });
+        </script>''' % urlserver_oembed_size()
+    else:
+        oembed_js =''
+
     if len(urlserver_settings['http_css_url']) > 0:
         css = '<link rel="stylesheet" type="text/css" href="%s" />' % urlserver_settings['http_css_url']
     else:
         css = ''
+
     html = '''<!DOCTYPE html>
     <html lang="en">
         <head>
         <title>%s</title>
         <meta http-equiv="content-type" content="text/html; charset=utf-8" />
         <link rel="next" href="?page=%s">
+        %s
         <script type="text/javascript">
             var nr = 2;
             var scroll = function(event) {
@@ -536,7 +576,7 @@ def urlserver_server_reply_list(conn, sort='-time', search='', page=1, amount=0)
         <body onkeypress="scroll(event)">
             %s
         </body>
-        </html>''' % (urlserver_settings['http_title'], page+1, css, content)
+        </html>''' % (urlserver_settings['http_title'], page+1, oembed_js, css, content)
     urlserver_server_reply(conn, '200 OK', '', html)
 
 def urlserver_server_fd_cb(data, fd):
