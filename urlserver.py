@@ -800,6 +800,14 @@ def urlserver_print_cb(data, buffer, time, tags, displayed, highlight, prefix, m
     # shorten URL(s) in message
     for url in urlserver['regex'].findall(message):
         if len(url) >= min_length:
+            page_title_pattern = re.compile("<title>(.+)<\/title>")
+            page = urllib.urlopen(url).read()
+            matchdata = page_title_pattern.search(page)
+            page_title = ''
+            if matchdata:
+                page_title = matchdata.group(1)
+            message = re.sub(url, '%s (%s)' % (url,page_title), message)
+
             number = urlserver['urls'].insert(time, nick, buffer_name, url, message, prefix)
             if urlserver_settings['display_urls'] == 'on':
                 weechat.prnt_date_tags(buffer, 0, 'no_log,notify_none', '%s%s' % (weechat.color(urlserver_settings['color']), urlserver_short_url(number)))
