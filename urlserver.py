@@ -393,6 +393,7 @@ def urlserver_server_reply_list(conn, sort='-time', search='', page=1, amount=0)
         message = cgi.escape(item[5].replace(url, '\x01\x02\x03\x04')).split('\t', 1)
         strjoin = ' %s ' % urlserver_settings['http_prefix_suffix'].replace(' ', '&nbsp;')
         message = strjoin.join(message).replace('\x01\x02\x03\x04', '<a href="%s" title="%s">%s</a>' % (urlserver_short_url(key), url, url))
+        message = message.replace("\n", "<br />")
         if urlserver_settings['http_embed_image'] == 'on' and url.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg')):
             obj = '<div class="obj"><img src="%s" title="%s" alt="%s"></div>' % (url, url, url)
         elif urlserver_settings['http_embed_youtube'] == 'on' and 'youtube.com/' in url:
