@@ -284,7 +284,7 @@ def unescape(text):
 
 def urlserver_get_page_title_for_url(url):
     page_title = ''
-    page_title_pattern = re.compile("<title>(.+)<\/title>")
+    page_title_pattern = re.compile("<title>(.+?)<\/title>")
     html = urllib.urlopen(url).read()
     html = re.sub("\n",'',urllib.urlopen(url).read())
     matchdata = page_title_pattern.search(html)
