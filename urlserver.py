@@ -281,15 +281,32 @@ def unescape(text):
     return re.sub("&#?\w+;", fixup, text)
 
 def urlserver_get_page_title_for_url(url):
-    page_title = ''
-    page_title_pattern = re.compile("<title>(.+?)<\/title>")
-    html = urllib.urlopen(url).read()
-    html = re.sub("\n",'',urllib.urlopen(url).read())
-    matchdata = page_title_pattern.search(html)
-    if matchdata:
-        page_title = matchdata.group(1).strip().decode('utf-8')
-        page_title = unescape(page_title).encode('utf-8')
+    try:
+        socket.setdefaulttimeout(1)
+        page = urllib.urlopen(url)
+    except Exception as inst:
+        return 'Error opening page: %s\n%s' % (type(inst), inst)
 
+    page_title = ''
+    page_url = page.geturl()
+    if page_url != url:
+        page_title = page_url + ' '
+
+    if 'Content-Type' not in page.info():
+        return page_title
+    mime = page.info()['Content-Type'].split(';')[0]
+    if mime not in ('application/xhtml+xml', 'text/html'):
+        return page_title
+
+    html = page.read()
+    html = re.sub("[\r\n\t ]+",' ',urllib.urlopen(url).read())
+    page_title_pattern = re.compile("(?i)<title>(.+?)<\/title>")
+    matchdata = page_title_pattern.search(html)
+    if not matchdata:
+        return page_title
+
+    page_title = matchdata.group(1).strip().decode('utf-8')
+    page_title = unescape(page_title).encode('utf-8')
     return page_title
 
 def urlserver_short_url(number):
