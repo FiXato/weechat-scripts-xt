@@ -301,7 +301,7 @@ def urlserver_get_page_title_for_url(url):
         return page_title
 
     html = page.read()
-    html = re.sub("[\r\n\t ]+",' ',urllib.urlopen(url).read())
+    html = re.sub("[\r\n\t ]+",' ',html)
     page_title_pattern = re.compile("(?i)<title>(.+?)<\/title>")
     matchdata = page_title_pattern.search(html)
     if not matchdata:
